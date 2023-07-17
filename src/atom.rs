@@ -31,14 +31,14 @@ impl Rule<'_> {
             antecedent.visit_facts(visit)
         }
     }
-    pub fn variables(&self) -> HashSet<&String> {
-        let mut vars = HashSet::default();
-        // for x in self.con
-        self.visit_facts(&mut |fact| {
-            if let Fact::Variable(var) = fact {
-                vars.insert(var);
-            }
-        });
-        vars
-    }
+    // pub fn variables(&self) -> HashSet<u16> {
+    //     let mut vars = HashSet::default();
+    //     // for x in self.con
+    //     self.visit_facts(&mut |fact| {
+    //         if let Fact::Variable(var) = fact {
+    //             vars.insert(var);
+    //         }
+    //     });
+    //     vars
+    // }
 }

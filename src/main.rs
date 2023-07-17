@@ -6,7 +6,7 @@ use std::collections::HashSet;
 enum Fact {
     Tuple(Vec<Fact>),
     Literal(String),
-    Variable(String),
+    Variable(u16),
 }
 
 struct Rule<'a> {
@@ -16,7 +16,7 @@ struct Rule<'a> {
 
 #[derive(Default)]
 struct VarAssignments<'a> {
-    pairs: Vec<(&'a String, &'a Fact)>,
+    pairs: Vec<(u16, &'a Fact)>,
 }
 impl<'a> VarAssignments<'a> {
     fn save(&self) -> usize {
@@ -25,14 +25,14 @@ impl<'a> VarAssignments<'a> {
     fn load(&mut self, index: usize) {
         self.pairs.truncate(index)
     }
-    fn get(&'a self, var1: &'a String) -> Option<&'a Fact> {
+    fn get(&'a self, var1: u16) -> Option<&'a Fact> {
         self.pairs
             .iter()
             .find(|(var2, _)| &var1 == var2)
             .map(|(_, fact)| fact)
             .copied()
     }
-    fn push(&'a mut self, var: &'a String, fact: &'a Fact) {
+    fn push(&'a mut self, var: u16, fact: &'a Fact) {
         self.pairs.push((var, fact))
     }
 }
