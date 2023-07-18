@@ -1,9 +1,9 @@
 use crate::Atom;
 use crate::Rule;
 use nom::branch::alt;
-use nom::character::complete::{alphanumeric1,u16 as nomu16};
 use nom::character::complete::multispace0;
 use nom::character::complete::satisfy;
+use nom::character::complete::{alphanumeric1, u16 as nomu16};
 use nom::combinator::map as nommap;
 use nom::combinator::opt;
 use nom::combinator::recognize;
@@ -24,7 +24,6 @@ where
     preceded(multispace0, inner)
 }
 
-
 pub fn wsr<'a, F, O, E>(inner: F) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
 where
     E: ParseError<&'a str>,
@@ -32,8 +31,6 @@ where
 {
     terminated(inner, multispace0)
 }
-
-
 
 pub fn atom(s: &str) -> IResult<&str, Atom> {
     let t = |f: fn(&char) -> bool| {
