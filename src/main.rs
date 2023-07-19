@@ -68,6 +68,48 @@ impl VisitVars for Atom {
     }
 }
 
+impl Atom {
+    fn contains_var(&self, var: Var) -> bool {
+        let mut saw = false;
+        self.visit_vars(&mut |var2| {
+            if var2 == var {
+                saw = true;
+            }
+        });
+        saw
+    }
+    fn unify(atoms: [&Self; 2]) -> Option<HashMap<Var, Atom>> {
+        match atoms {
+            [Atom::Id(x), Atom::Id(y)] if x == y => return Some(Default::default()),
+            [Atom::Var(x), Atom::Var(y)] if x == y => return Some(Default::default()),
+            [Atom::Var(var), atom] | [atom, Atom::Var(var)] => {
+                if atom.contains_var(*var) {
+                    return None;
+                } else {
+                    let mut ret = HashMap::default();
+                    ret.insert(*var, atom.clone());
+                    return Some(ret);
+                }
+            }
+            [Atom::Tuple(x), Atom::Tuple(y)] => {
+                if x.len() != y.len() {
+                    None
+                } else {
+                    let mut ret = HashMap::default();
+                    for (x, y) in x.iter().zip(y.iter()) {
+                        let inner = Atom::unify([x, y])?;
+                        for (var, atom) in inner {
+                            ret.insert(var, atom);
+                        }
+                    }
+                    Some(ret)
+                }
+            }
+            _ => None,
+        }
+    }
+}
+
 fn print_indent<T>(history: &[T]) {
     for _ in 0..history.len() {
         print!("  ");
@@ -165,6 +207,10 @@ fn main() {
         rule.normalize_antecedent_set();
     }
     println!("{:#?}", rules);
+    {
+        let atoms = [&rules[0].antecedents[1], &rules[2].consequent];
+        println!("unified {:?} {:#?}", atoms, Atom::unify(atoms));
+    }
 
     let mut kb = Kb::default();
     return;
