@@ -99,7 +99,11 @@ impl Atom {
                     for (x, y) in x.iter().zip(y.iter()) {
                         let inner = Atom::unify([x, y])?;
                         for (var, atom) in inner {
-                            ret.insert(var, atom);
+                            if let Some(prev) = ret.insert(var, atom.clone()) {
+                                if prev != atom {
+                                    return None;
+                                }
+                            }
                         }
                     }
                     Some(ret)
@@ -208,8 +212,14 @@ fn main() {
     }
     println!("{:#?}", rules);
     {
-        let atoms = [&rules[0].antecedents[1], &rules[2].consequent];
-        println!("unified {:?} {:#?}", atoms, Atom::unify(atoms));
+        let fail = [
+            &parse::wsr(parse::atom)("((x 5) 0 0 1 1 (5 y))").unwrap().1,
+            &parse::wsr(parse::atom)("(7     7 8 8 9 9    )").unwrap().1,
+        ];
+        let success = [
+            &parse::wsr(parse::atom)("((x 5) 0 0 1 1 (6 y))").unwrap().1,
+            &parse::wsr(parse::atom)("(7     7 8 8 9 9    )").unwrap().1,
+        ];
     }
 
     let mut kb = Kb::default();
