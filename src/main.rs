@@ -145,6 +145,13 @@ struct EqGraph<'a> {
     edges: Vec<EqEdge<'a>>,
 }
 
+impl Rule {
+    fn normalize_antecedent_set(&mut self) {
+        self.antecedents.sort();
+        self.antecedents.dedup();
+    }
+}
+
 fn main() {
     let rules = "
     8 :- (auth 3) (3 say 8).
@@ -155,6 +162,7 @@ fn main() {
     let mut rules = parse::wsr(parse::rules)(rules).unwrap().1;
     for rule in rules.iter_mut() {
         rule.normalize_vars();
+        rule.normalize_antecedent_set();
     }
     println!("{:#?}", rules);
 
