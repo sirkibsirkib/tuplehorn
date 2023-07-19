@@ -5,6 +5,7 @@ version = 3
 [[package]]
 name = "combo_iter"
 version = "0.1.0"
+source = "git+https://github.com/sirkibsirkib/combo_iter.git#912ae85e0252e73357560547e9c11b2316c7c899"
 
 [[package]]
 name = "memchr"
