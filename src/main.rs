@@ -19,7 +19,31 @@ pub struct Rule {
     antecedents: Vec<Atom>,
 }
 
-impl Atom {
+trait VisitVars {
+    fn visit_vars(&self, visit: &mut impl FnMut(u16));
+    fn visit_vars_mut(&mut self, visit: &mut impl FnMut(&mut u16));
+    fn normalize_vars(&mut self) {
+        let mut fresh_iter = (0 as Var)..;
+        let mut rename = HashMap::<Var, Var>::default();
+        self.visit_vars_mut(&mut |var: &mut Var| {
+            *var = *rename.entry(*var).or_insert_with(|| fresh_iter.next().unwrap());
+        })
+    }
+}
+impl VisitVars for Rule {
+    fn visit_vars(&self, visit: &mut impl FnMut(u16)) {
+        for atom in Some(&self.consequent).into_iter().chain(self.antecedents.iter()) {
+            atom.visit_vars(visit)
+        }
+    }
+    fn visit_vars_mut(&mut self, visit: &mut impl FnMut(&mut u16)) {
+        for atom in Some(&mut self.consequent).into_iter().chain(self.antecedents.iter_mut()) {
+            atom.visit_vars_mut(visit)
+        }
+    }
+}
+
+impl VisitVars for Atom {
     fn visit_vars(&self, visit: &mut impl FnMut(u16)) {
         match self {
             Self::Id(_) => {}
@@ -123,21 +147,24 @@ struct EqGraph<'a> {
 
 fn main() {
     let rules = "
-    0 :- (auth 1) (1 say 0).
+    8 :- (auth 3) (3 say 8).
     (auth amy).
     (amy say (bob cool)).
     win :- (bob cool).
     ";
-    let rules = parse::wsr(parse::rules)(rules).unwrap().1;
+    let mut rules = parse::wsr(parse::rules)(rules).unwrap().1;
+    for rule in rules.iter_mut() {
+        rule.normalize_vars();
+    }
     println!("{:#?}", rules);
 
     let mut kb = Kb::default();
-
+    return;
     for _ in 0..1000 {
         for rule in &rules {
             let mut ci = combo_iter::BoxComboIter::new(&kb.vec, rule.antecedents.len());
             while let Some(fact_combo) = ci.next() {
-                let eq_graph = EqGraph::default();
+                // let eq_graph = EqGraph::default();
                 println!("{:?}", fact_combo);
             }
             // let's derive using this rule!
