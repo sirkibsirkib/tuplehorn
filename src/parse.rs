@@ -45,7 +45,7 @@ pub fn atom(s: &str) -> IResult<&str, Atom> {
         nommap(many0(atom), |mut x| if x.len() == 1 { x.pop().unwrap() } else { Atom::Tuple(x) }),
         wsl(tag(")")),
     );
-    let var = nommap(nomu16, Atom::Variable);
+    let var = nommap(nomu16, Atom::Var);
     wsl(alt((id, tuple, var)))(s)
 }
 

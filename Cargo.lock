@@ -3,6 +3,10 @@
 version = 3
 
 [[package]]
+name = "combo_iter"
+version = "0.1.0"
+
+[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -28,5 +32,6 @@ dependencies = [
 name = "tuplehorn"
 version = "0.1.0"
 dependencies = [
+ "combo_iter",
  "nom",
 ]
