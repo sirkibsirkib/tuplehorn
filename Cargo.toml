@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 nom = "7.1.3"
 combo_iter = { git = "https://github.com/sirkibsirkib/combo_iter.git" }
+eq_graph = { git = "https://github.com/sirkibsirkib/eq_graph.git" }

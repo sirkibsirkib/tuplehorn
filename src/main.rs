@@ -1,3 +1,4 @@
+use eq_graph::EqGraph;
 use std::collections::HashMap;
 
 mod parse;
@@ -173,29 +174,49 @@ enum Ctx {
     Antecedent { index: usize },
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
-struct EqNode<'a> {
-    atom: &'a Atom,
-    ctx: Ctx,
-}
-
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
-struct EqEdge<'a> {
-    // in normal form: nodes[0] < nodes[1]
-    nodes: [EqNode<'a>; 2],
-}
-
-#[derive(Default)]
-struct EqGraph<'a> {
-    // in normal form: edge[i] < edge[i+1]
-    edges: Vec<EqEdge<'a>>,
-}
-
 impl Rule {
     fn normalize_antecedent_set(&mut self) {
         self.antecedents.sort();
         self.antecedents.dedup();
     }
+}
+
+#[derive(Debug)]
+struct EqClash<'a>([&'a Atom; 2]);
+
+fn equate<'a, 'b>(
+    eg: &'a mut EqGraph<&'b Atom>,
+    a: &'b Atom,
+    b: &'b Atom,
+) -> Result<(), EqClash<'b>> {
+    if !eg.relate(a, b) {
+        // no change
+        return Ok(());
+    }
+    let class = eg.equivalents(&a).copied().collect::<Vec<&Atom>>();
+    for &x in &class {
+        for &y in &class {
+            let clash: bool = match [x, y] {
+                [Atom::Id(xid), Atom::Id(yid)] if xid != yid => true,
+                [Atom::Id(_), Atom::Tuple(_)] | [Atom::Tuple(_), Atom::Id(_)] => true,
+                [Atom::Tuple(xargs), Atom::Tuple(yargs)] => {
+                    if xargs.len() != yargs.len() {
+                        true
+                    } else {
+                        for (xarg, yarg) in xargs.iter().zip(yargs.iter()) {
+                            equate(eg, xarg, yarg)?;
+                        }
+                        false
+                    }
+                }
+                _ => false,
+            };
+            if clash {
+                return Err(EqClash([x, y]));
+            }
+        }
+    }
+    Ok(())
 }
 
 fn main() {
@@ -211,25 +232,23 @@ fn main() {
         rule.normalize_antecedent_set();
     }
     println!("{:#?}", rules);
-    {
-        let fail = [
-            &parse::wsr(parse::atom)("((x 5) 0 0 1 1 (5 y))").unwrap().1,
-            &parse::wsr(parse::atom)("(7     7 8 8 9 9    )").unwrap().1,
-        ];
-        let success = [
-            &parse::wsr(parse::atom)("((x 5) 0 0 1 1 (6 y))").unwrap().1,
-            &parse::wsr(parse::atom)("(7     7 8 8 9 9    )").unwrap().1,
-        ];
-    }
 
-    let mut kb = Kb::default();
-    return;
-    for _ in 0..1000 {
+    let kb = Kb::default();
+
+    for _ in 0..1 {
         for rule in &rules {
+            println!("rule {:?}", rule);
             let mut ci = combo_iter::BoxComboIter::new(&kb.vec, rule.antecedents.len());
             while let Some(fact_combo) = ci.next() {
-                // let eq_graph = EqGraph::default();
-                println!("{:?}", fact_combo);
+                println!("fact combo {:?}", fact_combo);
+                let mut eq = EqGraph::default();
+                let mut clash = None;
+                for (fact, antecedent) in fact_combo.iter().zip(rule.antecedents.iter()) {
+                    if let Err(c) = equate(&mut eq, fact, antecedent) {
+                        clash = Some(c);
+                    }
+                }
+                println!("ULTIMATELY clash {:?} we get eq {:?} ", clash, eq);
             }
             // let's derive using this rule!
         }
