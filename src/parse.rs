@@ -3,7 +3,7 @@ use crate::Rule;
 use nom::branch::alt;
 use nom::character::complete::multispace0;
 use nom::character::complete::satisfy;
-use nom::character::complete::{alphanumeric1, u16 as nomu16};
+use nom::character::complete::{alphanumeric1, u32 as nomu32};
 use nom::combinator::map as nommap;
 use nom::combinator::opt;
 use nom::combinator::recognize;
@@ -45,7 +45,7 @@ pub fn atom(s: &str) -> IResult<&str, Atom> {
         nommap(many0(atom), |mut x| if x.len() == 1 { x.pop().unwrap() } else { Atom::Tuple(x) }),
         wsl(tag(")")),
     );
-    let var = nommap(nomu16, Atom::Var);
+    let var = nommap(nomu32, Atom::Var);
     wsl(alt((id, tuple, var)))(s)
 }
 

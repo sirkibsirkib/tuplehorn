@@ -7,7 +7,7 @@ mod parse;
 */
 
 type Id = String;
-type Var = u16;
+type Var = u32;
 #[derive(Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum Atom {
     Tuple(Vec<Atom>),
@@ -21,23 +21,16 @@ pub struct Rule {
 }
 
 trait VisitVars {
-    fn visit_vars(&self, visit: &mut impl FnMut(u16));
-    fn visit_vars_mut(&mut self, visit: &mut impl FnMut(&mut u16));
-    fn normalize_vars(&mut self) {
-        let mut fresh_iter = (0 as Var)..;
-        let mut rename = HashMap::<Var, Var>::default();
-        self.visit_vars_mut(&mut |var: &mut Var| {
-            *var = *rename.entry(*var).or_insert_with(|| fresh_iter.next().unwrap());
-        })
-    }
+    fn visit_vars(&self, visit: &mut impl FnMut(Var));
+    fn visit_vars_mut(&mut self, visit: &mut impl FnMut(&mut Var));
 }
 impl VisitVars for Rule {
-    fn visit_vars(&self, visit: &mut impl FnMut(u16)) {
+    fn visit_vars(&self, visit: &mut impl FnMut(Var)) {
         for atom in Some(&self.consequent).into_iter().chain(self.antecedents.iter()) {
             atom.visit_vars(visit)
         }
     }
-    fn visit_vars_mut(&mut self, visit: &mut impl FnMut(&mut u16)) {
+    fn visit_vars_mut(&mut self, visit: &mut impl FnMut(&mut Var)) {
         for atom in Some(&mut self.consequent).into_iter().chain(self.antecedents.iter_mut()) {
             atom.visit_vars_mut(visit)
         }
@@ -45,7 +38,7 @@ impl VisitVars for Rule {
 }
 
 impl VisitVars for Atom {
-    fn visit_vars(&self, visit: &mut impl FnMut(u16)) {
+    fn visit_vars(&self, visit: &mut impl FnMut(Var)) {
         match self {
             Self::Id(_) => {}
             Self::Var(v) => visit(*v),
@@ -56,7 +49,7 @@ impl VisitVars for Atom {
             }
         }
     }
-    fn visit_vars_mut(&mut self, visit: &mut impl FnMut(&mut u16)) {
+    fn visit_vars_mut(&mut self, visit: &mut impl FnMut(&mut Var)) {
         match self {
             Self::Id(_) => {}
             Self::Var(v) => visit(v),
@@ -218,6 +211,26 @@ fn equate<'a, 'b>(
     }
     Ok(())
 }
+fn unify(atom: &Atom, eq_graph: &EqGraph<&Atom>) -> Result<(), ()> {
+    todo!()
+}
+
+#[derive(Default)]
+struct VarAllocator {
+    next: Var,
+    buf: HashMap<Var, Var>,
+}
+impl VarAllocator {
+    fn refresh<T: VisitVars>(&mut self, t: &mut T) {
+        self.buf.clear();
+        t.visit_vars_mut(&mut |v: &mut Var| {
+            *v = *self.buf.entry(*v).or_insert_with(|| {
+                self.next += 1;
+                self.next - 1
+            });
+        });
+    }
+}
 
 fn main() {
     let rules = "
@@ -227,8 +240,9 @@ fn main() {
     win :- (bob cool).
     ";
     let mut rules = parse::wsr(parse::rules)(rules).unwrap().1;
+    let mut var_allocator = VarAllocator::default();
     for rule in rules.iter_mut() {
-        rule.normalize_vars();
+        var_allocator.refresh(rule);
         rule.normalize_antecedent_set();
     }
     println!("{:#?}", rules);
